@@ -51,6 +51,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
     setSaving(false);
   };
 
+  const deletePlayer = async (p: PlayerInfo, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`确定删除玩家「${p.name}」？所有数据将永久丢失。`)) return;
+    await fetch(`/api/admin/player/${p.userId}`, { method: "DELETE", headers: { "X-User-Id": uid() } });
+    if (selected?.userId === p.userId) { setSelected(null); setState(null); }
+    loadPlayers();
+  };
+
   const s = state;
   const diff = s && !s._error ? (parseInt(editTokens) || 0) - (s.tokens ?? 0) : 0;
 
@@ -66,10 +74,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
         <div style={{ width: 180, flexShrink: 0 }}>
           {players.map((p) => (
             <div key={p.userId} onClick={() => viewPlayer(p)}
-              style={{ padding: "8px 10px", cursor: "pointer", borderRadius: 6, marginBottom: 2,
+              style={{ padding: "6px 8px", cursor: "pointer", borderRadius: 6, marginBottom: 2,
                 background: selected?.userId === p.userId ? "var(--bg-active, rgba(100,100,255,0.08))" : "transparent",
-                fontSize: "0.85rem", transition: "background 0.1s" }}>
-              <div style={{ fontWeight: 500 }}>{p.name}</div>
+                fontSize: "0.85rem", transition: "background 0.1s", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 500 }}>{p.name}</span>
+              <button onClick={(e) => deletePlayer(p, e)}
+                style={{ background: "none", border: "none", color: "#ccc", cursor: "pointer", fontSize: "0.85rem", padding: "0 2px", lineHeight: 1 }}
+                title="删除玩家">×</button>
             </div>
           ))}
           {players.length === 0 && <div style={{ fontSize: "0.8rem", color: "#888", padding: 10 }}>暂无玩家</div>}

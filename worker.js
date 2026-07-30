@@ -89,6 +89,20 @@ export default {
         return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
       }
     }
+    if (path.startsWith("/api/admin/player/") && method === "DELETE") {
+      if (!userId || !ADMIN_IDS.includes(userId)) return new Response("forbidden", { status: 403 });
+      const targetId = path.split("/").pop();
+      await env.GAME_STATE.delete(`state:${targetId}`);
+      // 从玩家列表移除
+      try {
+        const raw = await env.GAME_STATE.get("admin:players");
+        if (raw) {
+          const players = JSON.parse(raw).filter((p) => !p.startsWith(`${targetId}|`));
+          await env.GAME_STATE.put("admin:players", JSON.stringify(players));
+        }
+      } catch (_) { /* non-critical */ }
+      return new Response("ok");
+    }
 
     // SPA fallback
     return env.ASSETS.fetch(request);
