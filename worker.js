@@ -1,11 +1,14 @@
 /**
- * 只处理 /oauth/token 代理，其余由 Workers Static Assets 自动服务。
+ * 反向代理 OAuth 端点到 IAM，其余请求走静态资源。
+ *
+ * /oauth/token    (POST) → iam.transcircle.org/oauth2/token
+ * /oauth/userinfo (GET)  → iam.transcircle.org/oauth2/userinfo
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // POST /oauth/token → 反向代理到 IAM
+    // POST /oauth/token → IAM token 端点
     if (url.pathname === "/oauth/token" && request.method === "POST") {
       const body = await request.text();
       const iamResp = await fetch("https://iam.transcircle.org/oauth2/token", {
@@ -15,14 +18,22 @@ export default {
       });
       return new Response(iamResp.body, {
         status: iamResp.status,
-        headers: {
-          "Content-Type": iamResp.headers.get("Content-Type") || "application/json",
-          "Cache-Control": "no-store",
-        },
+        headers: { "Content-Type": iamResp.headers.get("Content-Type") || "application/json", "Cache-Control": "no-store" },
       });
     }
 
-    // SPA fallback: 所有非 API 请求走静态资源
+    // GET /oauth/userinfo → IAM UserInfo 端点（透传 Authorization header）
+    if (url.pathname === "/oauth/userinfo") {
+      const iamResp = await fetch("https://iam.transcircle.org/oauth2/userinfo", {
+        headers: { Authorization: request.headers.get("Authorization") || "" },
+      });
+      return new Response(iamResp.body, {
+        status: iamResp.status,
+        headers: { "Content-Type": iamResp.headers.get("Content-Type") || "application/json", "Cache-Control": "no-store" },
+      });
+    }
+
+    // 其余走静态资源
     return env.ASSETS.fetch(request);
   },
 };

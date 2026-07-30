@@ -213,7 +213,7 @@ export async function processCallback(): Promise<CallbackResult | null> {
 
   // 拉 UserInfo
   try {
-    const resp = await fetch(`${cfg.issuer}/oauth2/userinfo`, {
+    const resp = await fetch(`/oauth/userinfo`, {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     if (!resp.ok) {
