@@ -179,6 +179,7 @@ export async function processCallback(): Promise<CallbackResult | null> {
     const resp = await fetch(`${cfg.issuer}/oauth2/token`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      credentials: "include",
       body: new URLSearchParams(body),
     });
 
