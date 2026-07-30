@@ -8,22 +8,22 @@ import ResultModal from "./components/ResultModal";
 import Inventory from "./components/Inventory";
 import History from "./components/History";
 import LoginScreen from "./components/LoginScreen";
+import AdminPage from "./components/AdminPage";
 import ThemeToggle from "./components/ThemeToggle";
 import styles from "./App.module.css";
 
+const DEFAULT_STATE: PlayerState = {
+  playerName: "",
+  tokens: 0,
+  inventory: {},
+  history: [],
+  lastFreeSpinTimestamp: 0,
+};
+
 const App: React.FC = () => {
-  // ── All hooks declared FIRST (Rules of Hooks) ──
-  const [playerState, setPlayerState] = useState<PlayerState>(() => {
-    const game = loadState();
-    // 如果游戏存档没有玩家名，但 IAM 有已登录用户 → 自动补齐
-    if (!game.playerName) {
-      const iamUser = getStoredUser();
-      if (iamUser) {
-        return { ...game, playerName: iamUser.preferred_username };
-      }
-    }
-    return game;
-  });
+  const [playerState, setPlayerState] = useState<PlayerState>(DEFAULT_STATE);
+  const [loading, setLoading] = useState(true);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [spinTrigger, setSpinTrigger] = useState<{ slotId: number } | null>(null);
   const [resultSlot, setResultSlot] = useState<number | null>(null);
@@ -32,25 +32,38 @@ const App: React.FC = () => {
   const stateRef = useRef(playerState);
   stateRef.current = playerState;
 
+  // ── 挂载时从服务端加载存档 ──
+  useEffect(() => {
+    (async () => {
+      const state = await loadState();
+      const iamUser = getStoredUser();
+      if (iamUser && !state.playerName) {
+        state.playerName = iamUser.preferred_username;
+      }
+      setPlayerState(state);
+      stateRef.current = state;
+      setLoading(false);
+    })();
+  }, []);
+
   // ── OAuth 回调处理 ──
   useEffect(() => {
-    // 检查 URL 中是否有 IAM 回调参数
     const params = new URLSearchParams(window.location.search);
     if (!params.has("code") && !params.has("error")) return;
-
     (async () => {
       const result = await processCallback();
       if (result && result.success) {
-        const name = result.user.preferred_username;
-        const updated: PlayerState = { ...stateRef.current, playerName: name };
+        const loaded = await loadState();
+        const updated: PlayerState = { ...loaded, playerName: result.user.preferred_username };
         setPlayerState(updated);
-        saveState(updated);
+        stateRef.current = updated;
+        await saveState(updated);
       } else if (result && !result.success) {
         setError(result.error);
         setTimeout(() => setError(null), 5000);
       }
     })();
-  }, []); // 仅挂载时执行
+  }, []);
 
   const handleSpin = useCallback(
     (mode: SpinMode) => {
@@ -62,7 +75,6 @@ const App: React.FC = () => {
         setTimeout(() => setError(null), 2000);
         return;
       }
-
       if (mode === "premium" && st.tokens < 100) {
         setError("TSC 代币不足 (需要 100)");
         setTimeout(() => setError(null), 2000);
@@ -77,6 +89,8 @@ const App: React.FC = () => {
         setResultMode(mode);
         setIsSpinning(true);
         setSpinTrigger({ slotId });
+        // 异步保存（不阻塞 UI）
+        saveState(updatedState);
       } catch (e) {
         setError(e instanceof Error ? e.message : "抽奖失败");
         setTimeout(() => setError(null), 2000);
@@ -98,17 +112,24 @@ const App: React.FC = () => {
   const handleLogout = useCallback(() => {
     const cleared: PlayerState = { ...playerState, playerName: "" };
     setPlayerState(cleared);
-    saveState(cleared);
     iamLogout();
   }, [playerState]);
 
   const freeRemaining = getDailyFreeRemaining(playerState);
 
-  // ── 还在处理 OAuth 回调时显示 loading ──
+  // ── 加载中 ──
+  if (loading) {
+    return (
+      <div className={styles.container} style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p>加载中...</p>
+      </div>
+    );
+  }
+
+  // ── OAuth 回调进行中 ──
   const oauthPending = !playerState.playerName &&
     isIamConfigured() &&
     new URLSearchParams(window.location.search).has("code");
-
   if (oauthPending) {
     return (
       <div className={styles.container} style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -127,12 +148,33 @@ const App: React.FC = () => {
     );
   }
 
+  // ── 管理后台 ──
+  if (showAdmin) {
+    return (
+      <>
+        <ThemeToggle />
+        <AdminPage onBack={() => setShowAdmin(false)} />
+      </>
+    );
+  }
+
+  // ── 游戏主界面 ──
   return (
     <>
       <ThemeToggle />
       <div className={styles.app}>
         <header className={styles.header}>
-          <h1 className={styles.title}>TransCircle 转盘</h1>
+          <h1 className={styles.title}>
+            TransCircle 转盘
+            <button
+              className={styles.logoutBtn}
+              onClick={() => setShowAdmin(true)}
+              title="管理后台"
+              style={{ marginLeft: 8, fontSize: "var(--fs-sm)" }}
+            >
+              ⚙
+            </button>
+          </h1>
           <p className={styles.playerName}>
             🎮 {playerState.playerName}
             {isIamConfigured() && (
@@ -158,25 +200,14 @@ const App: React.FC = () => {
           />
 
           {error && (
-            <p
-              style={{
-                textAlign: "center",
-                color: "var(--error-color)",
-                fontSize: "var(--fs-sm)",
-                margin: 0,
-              }}
-              role="alert"
-            >
+            <p style={{ textAlign: "center", color: "var(--error-color)", fontSize: "var(--fs-sm)", margin: 0 }} role="alert">
               {error}
             </p>
           )}
 
           <hr className={styles.divider} />
-
           <Inventory inventory={playerState.inventory} />
-
           <hr className={styles.divider} />
-
           <History history={playerState.history} />
         </main>
 
@@ -189,11 +220,7 @@ const App: React.FC = () => {
       </div>
 
       {resultSlot !== null && (
-        <ResultModal
-          slotId={resultSlot}
-          mode={resultMode}
-          onClose={closeResult}
-        />
+        <ResultModal slotId={resultSlot} mode={resultMode} onClose={closeResult} />
       )}
     </>
   );

@@ -11,22 +11,45 @@ import {
   DAILY_FREE_LIMIT,
 } from "./constants";
 
-const STORAGE_KEY = "transcircle_wheel_state";
-
-const DEFAULT_STATE: PlayerState = {
-  playerName: "",
-  tokens: 0,
-  inventory: {},
-  history: [],
-  lastFreeSpinTimestamp: 0,
+/** ── 高级抽奖 TSC 奖励映射 ── */
+const PREMIUM_TOKEN_REWARDS: Record<number, number> = {
+  1: 5,
+  3: 10,
+  5: 20,
 };
 
-/** ── 读取存档 ────────────────────────────────── */
-export function loadState(): PlayerState {
+const API_BASE = "/api/game";
+
+function getUserId(): string {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_STATE };
-    const parsed = JSON.parse(raw) as Partial<PlayerState>;
+    const raw = localStorage.getItem("iam_tokens");
+    if (!raw) return "";
+    const tok = JSON.parse(raw);
+    // 从 id_token 解析 sub（简单 base64 decode payload）
+    const payload = tok.id_token?.split(".")[1];
+    if (!payload) return "";
+    return JSON.parse(atob(payload)).sub || "";
+  } catch {
+    return "";
+  }
+}
+
+function apiHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "X-User-Id": getUserId(),
+  };
+}
+
+/** ── 从服务端加载存档 ───────────────────────────── */
+export async function loadState(): Promise<PlayerState> {
+  try {
+    const uid = getUserId();
+    if (!uid) return DEFAULT_STATE;
+    const resp = await fetch(`${API_BASE}/state`, { headers: apiHeaders() });
+    if (!resp.ok) return DEFAULT_STATE;
+    const parsed = await resp.json();
+    if (!parsed || !parsed.playerName) return DEFAULT_STATE;
     return {
       playerName: parsed.playerName ?? "",
       tokens: parsed.tokens ?? 0,
@@ -39,20 +62,32 @@ export function loadState(): PlayerState {
   }
 }
 
-/** ── 写入存档 ────────────────────────────────── */
-export function saveState(state: PlayerState): void {
+/** ── 写入存档到服务端 ───────────────────────────── */
+export async function saveState(state: PlayerState): Promise<void> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const uid = getUserId();
+    if (!uid) return;
+    await fetch(`${API_BASE}/state`, {
+      method: "POST",
+      headers: apiHeaders(),
+      body: JSON.stringify(state),
+    });
   } catch {
-    /* quota exceeded — silently ignore */
+    /* 静默失败 — 下次 save 会重试 */
   }
 }
 
+const DEFAULT_STATE: PlayerState = {
+  playerName: "",
+  tokens: 0,
+  inventory: {},
+  history: [],
+  lastFreeSpinTimestamp: 0,
+};
+
 /** ── 重置存档 ────────────────────────────────── */
 export function resetState(): void {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch { /* noop */ }
+  /* 不做任何事 — 由服务端管理 */
 }
 
 /** ── 检查每日免费次数是否已达上限 ─────────────── */
@@ -66,7 +101,6 @@ export function canFreeSpin(state: PlayerState): boolean {
   return freeCount < DAILY_FREE_LIMIT;
 }
 
-/** ── 获取当日 0 时时间戳 ─────────────────────── */
 function getDayStart(ts: number): number {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
@@ -83,7 +117,6 @@ export function getDailyFreeRemaining(state: PlayerState): number {
   return Math.max(0, DAILY_FREE_LIMIT - freeCount);
 }
 
-/** ── 按权重随机抽选格子 (高级抽奖) ─────────────── */
 function weightedPick(): number {
   const r = Math.random();
   let cumulative = 0;
@@ -91,23 +124,14 @@ function weightedPick(): number {
     cumulative += PREMIUM_WEIGHTS[i];
     if (r < cumulative) return i;
   }
-  return PREMIUM_WEIGHTS.length - 1; // 浮点误差回退
+  return PREMIUM_WEIGHTS.length - 1;
 }
 
-/** ── 普通抽奖: 从普通格中均匀随机 ─────────────── */
 function commonPick(): number {
   const idx = Math.floor(Math.random() * COMMON_SLOT_IDS.length);
   return COMMON_SLOT_IDS[idx];
 }
 
-/** ── 高级抽奖 TSC 奖励映射 (共用 WHEEL_SLOTS 但奖励不同) ── */
-const PREMIUM_TOKEN_REWARDS: Record<number, number> = {
-  1: 5,
-  3: 10,
-  5: 20,
-};
-
-/** ── 执行抽奖, 返回 { slotId, updatedState } ─── */
 export function performSpin(
   state: PlayerState,
   mode: SpinMode,
@@ -115,52 +139,36 @@ export function performSpin(
   const s = { ...state };
   s.history = [...s.history];
 
-  // 扣费 (高级)
   if (mode === "premium") {
-    if (s.tokens < PREMIUM_COST) {
-      throw new Error("TSC 代币不足");
-    }
+    if (s.tokens < PREMIUM_COST) throw new Error("TSC 代币不足");
     s.tokens -= PREMIUM_COST;
   }
 
-  // 确定中奖格子
   const slotId = mode === "premium" ? weightedPick() : commonPick();
   const slot = WHEEL_SLOTS[slotId];
 
-  // 高级模式: 槽位 1/3/5 是 TSC 奖励而非"谢谢惠顾"
   let reward = slot.reward;
   if (mode === "premium" && slotId in PREMIUM_TOKEN_REWARDS) {
     reward = { type: "tokens", amount: PREMIUM_TOKEN_REWARDS[slotId] };
   }
 
-  // 发放奖励
   switch (reward.type) {
     case "tokens":
       s.tokens += reward.amount ?? 0;
       break;
     case "freeSpin":
-      // 再来一次: 直接免费再抽一次普通 (re-spin 记为 bonus，不计入免费限额)
       {
         const reSlotId = commonPick();
         const reSlot = WHEEL_SLOTS[reSlotId];
         applyReward(s, reSlot.reward);
-        // 记录第一次的"再来一次"结果 (仍用原 mode)
         const rec: SpinRecord = {
-          timestamp: Date.now(),
-          mode,
-          slotId,
-          prizeName: slot.name,
+          timestamp: Date.now(), mode, slotId, prizeName: slot.name,
         };
-        // 记录 re-spin 的实际奖品 (bonus 不计入免费次数)
         const rec2: SpinRecord = {
-          timestamp: Date.now() + 1,
-          mode: "bonus",
-          slotId: reSlotId,
-          prizeName: reSlot.name,
+          timestamp: Date.now() + 1, mode: "bonus", slotId: reSlotId, prizeName: reSlot.name,
         };
         s.history.unshift(rec2);
         s.history.unshift(rec);
-        saveState(s);
         return { slotId: reSlotId, updatedState: s };
       }
     case "collectible":
@@ -171,29 +179,22 @@ export function performSpin(
       }
       break;
     case "nothing":
-      // 谢谢惠顾 — 什么都没发生
       break;
   }
 
-  // 记录历史
   const record: SpinRecord = {
-    timestamp: Date.now(),
-    mode,
-    slotId,
-    prizeName: slot.name,
+    timestamp: Date.now(), mode, slotId, prizeName: slot.name,
   };
   s.history.unshift(record);
 
-  // 限制历史长度
   if (s.history.length > 100) {
     s.history = s.history.slice(0, 100);
   }
 
-  saveState(s);
   return { slotId, updatedState: s };
 }
 
-function applyReward(state: PlayerState, reward: typeof WHEEL_SLOTS[number]["reward"]): void {
+function applyReward(state: PlayerState, reward: (typeof WHEEL_SLOTS)[number]["reward"]): void {
   switch (reward.type) {
     case "tokens":
       state.tokens += reward.amount ?? 0;
@@ -204,11 +205,9 @@ function applyReward(state: PlayerState, reward: typeof WHEEL_SLOTS[number]["rew
       state.inventory[itemId] = (state.inventory[itemId] ?? 0) + 1;
       break;
     }
-    case "freeSpin": {
-      // 再来一次中再来一次 — 给 5 TSC 防止死循环
+    case "freeSpin":
       state.tokens += 5;
       break;
-    }
     case "nothing":
       break;
   }

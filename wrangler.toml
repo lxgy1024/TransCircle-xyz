@@ -4,3 +4,7 @@ compatibility_date = "2026-07-30"
 
 [assets]
 directory = "./dist/"
+
+[[kv_namespaces]]
+binding = "GAME_STATE"
+id = "527dac2ed5684b62b83c722562921f36"
