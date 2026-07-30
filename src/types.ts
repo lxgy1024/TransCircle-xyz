@@ -22,7 +22,7 @@ export interface WheelSlot {
 }
 
 /** 游戏模式 */
-export type SpinMode = "free" | "premium";
+export type SpinMode = "free" | "premium" | "bonus";
 
 /** 单次抽奖记录 */
 export interface SpinRecord {

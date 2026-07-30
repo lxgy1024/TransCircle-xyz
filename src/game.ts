@@ -100,6 +100,13 @@ function commonPick(): number {
   return COMMON_SLOT_IDS[idx];
 }
 
+/** ── 高级抽奖 TSC 奖励映射 (共用 WHEEL_SLOTS 但奖励不同) ── */
+const PREMIUM_TOKEN_REWARDS: Record<number, number> = {
+  1: 5,
+  3: 10,
+  5: 20,
+};
+
 /** ── 执行抽奖, 返回 { slotId, updatedState } ─── */
 export function performSpin(
   state: PlayerState,
@@ -120,29 +127,34 @@ export function performSpin(
   const slotId = mode === "premium" ? weightedPick() : commonPick();
   const slot = WHEEL_SLOTS[slotId];
 
+  // 高级模式: 槽位 1/3/5 是 TSC 奖励而非"谢谢惠顾"
+  let reward = slot.reward;
+  if (mode === "premium" && slotId in PREMIUM_TOKEN_REWARDS) {
+    reward = { type: "tokens", amount: PREMIUM_TOKEN_REWARDS[slotId] };
+  }
+
   // 发放奖励
-  const reward = slot.reward;
   switch (reward.type) {
     case "tokens":
       s.tokens += reward.amount ?? 0;
       break;
     case "freeSpin":
-      // 再来一次: 直接免费再抽一次普通 (递归但只一次)
+      // 再来一次: 直接免费再抽一次普通 (re-spin 记为 bonus，不计入免费限额)
       {
         const reSlotId = commonPick();
         const reSlot = WHEEL_SLOTS[reSlotId];
         applyReward(s, reSlot.reward);
-        // 记录第一次的"再来一次"结果
+        // 记录第一次的"再来一次"结果 (仍用原 mode)
         const rec: SpinRecord = {
           timestamp: Date.now(),
           mode,
           slotId,
           prizeName: slot.name,
         };
-        // 记录第二次的实际奖品
+        // 记录 re-spin 的实际奖品 (bonus 不计入免费次数)
         const rec2: SpinRecord = {
           timestamp: Date.now() + 1,
-          mode,
+          mode: "bonus",
           slotId: reSlotId,
           prizeName: reSlot.name,
         };
