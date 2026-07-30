@@ -3,3 +3,8 @@ dist/
 .env
 *.local
 .DS_Store
+*.png
+*.tsbuildinfo
+.codegraph/
+.omo/
+.playwright-mcp/

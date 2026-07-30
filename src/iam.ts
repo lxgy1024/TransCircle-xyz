@@ -176,10 +176,12 @@ export async function processCallback(): Promise<CallbackResult | null> {
       body.client_secret = cfg.clientSecret;
     }
 
-    const resp = await fetch(`${cfg.issuer}/oauth2/token`, {
+    // 走同源代理 /oauth/token（避免跨域 CORS）：
+    //   生产 → Cloudflare Pages Function 转发到 IAM
+    //   开发 → Vite proxy 转发到 IAM
+    const resp = await fetch(`/oauth/token`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      credentials: "include",
       body: new URLSearchParams(body),
     });
 

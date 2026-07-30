@@ -5,5 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5174,
+    proxy: {
+      // 开发环境：把 /oauth/token 代理到 IAM，避免跨域
+      "/oauth/token": {
+        target: "https://iam.transcircle.org",
+        changeOrigin: true,
+      },
+    },
   },
 });
