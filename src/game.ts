@@ -20,7 +20,7 @@ const PREMIUM_TOKEN_REWARDS: Record<number, number> = {
 
 const API_BASE = "/api/game";
 
-function getUserId(): string {
+export function getUserId(): string {
   try {
     const raw = localStorage.getItem("iam_tokens");
     if (!raw) return "";

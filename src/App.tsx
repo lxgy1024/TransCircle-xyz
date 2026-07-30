@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { PlayerState, SpinMode } from "./types";
-import { loadState, performSpin, canFreeSpin, getDailyFreeRemaining, saveState } from "./game";
+import { loadState, performSpin, canFreeSpin, getDailyFreeRemaining, saveState, getUserId } from "./game";
 import { processCallback, getStoredUser, logout as iamLogout, isIamConfigured } from "./iam";
 import Wheel from "./components/Wheel";
 import Dashboard from "./components/Dashboard";
@@ -116,6 +116,7 @@ const App: React.FC = () => {
   }, [playerState]);
 
   const freeRemaining = getDailyFreeRemaining(playerState);
+  const isAdmin = getUserId() === "019ea0ed-9b49-701a-849d-efa50ea3fae4";
 
   // ── 加载中 ──
   if (loading) {
@@ -166,14 +167,11 @@ const App: React.FC = () => {
         <header className={styles.header}>
           <h1 className={styles.title}>
             TransCircle 转盘
-            <button
-              className={styles.logoutBtn}
-              onClick={() => setShowAdmin(true)}
-              title="管理后台"
-              style={{ marginLeft: 8, fontSize: "var(--fs-sm)" }}
-            >
-              ⚙
-            </button>
+            {isAdmin && (
+              <button className={styles.logoutBtn} onClick={() => setShowAdmin(true)} title="管理后台" style={{ marginLeft: 8 }}>
+                ⚙
+              </button>
+            )}
           </h1>
           <p className={styles.playerName}>
             🎮 {playerState.playerName}
