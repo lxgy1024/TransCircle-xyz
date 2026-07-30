@@ -1,33 +1,5 @@
 const IAM = "https://iam.transcircle.org";
-const ADMIN_IDS = ["019ea0ed-9b49-701a-849d-efa50ea3fae4"]; // lxgy1024
-
-async function apiState(userId, env) {
-  const raw = await env.GAME_STATE.get(`state:${userId}`);
-  return new Response(raw || "{}", { headers: { "Content-Type": "application/json" } });
-}
-
-async function apiSaveState(userId, body, env) {
-  await env.GAME_STATE.put(`state:${userId}`, JSON.stringify(body));
-  // track player list
-  let players = JSON.parse(await env.GAME_STATE.get("admin:players") || "[]");
-  const userKey = `${userId}|${body.playerName || ""}`;
-  players = players.filter((p) => !p.startsWith(`${userId}|`));
-  players.unshift(userKey);
-  if (players.length > 200) players = players.slice(0, 200);
-  await env.GAME_STATE.put("admin:players", JSON.stringify(players));
-  return new Response("ok");
-}
-
-async function apiAdminPlayers(env) {
-  const raw = await env.GAME_STATE.get("admin:players");
-  const players = raw ? JSON.parse(raw) : [];
-  return new Response(JSON.stringify({ players }), { headers: { "Content-Type": "application/json" } });
-}
-
-async function apiAdminPlayerState(userId, env) {
-  const raw = await env.GAME_STATE.get(`state:${userId}`);
-  return new Response(raw || "{}", { headers: { "Content-Type": "application/json" } });
-}
+const ADMIN_IDS = ["019ea0ed-9b49-701a-849d-efa50ea3fae4"];
 
 export default {
   async fetch(request, env) {
@@ -56,24 +28,51 @@ export default {
     const userId = request.headers.get("X-User-Id") || "";
 
     if (path === "/api/game/state" && method === "GET") {
-      if (!userId) return new Response("missing user", { status: 401 });
-      return apiState(userId, env);
-    }
-    if (path === "/api/game/state" && method === "POST") {
-      if (!userId) return new Response("missing user", { status: 401 });
-      const body = await request.json();
-      return apiSaveState(userId, body, env);
+      if (!userId) return new Response('{"error":"missing user"}', { status: 401, headers: { "Content-Type": "application/json" } });
+      try {
+        const raw = await env.GAME_STATE.get(`state:${userId}`);
+        return new Response(raw || "{}", { headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
+      }
     }
 
-    // Admin API
+    if (path === "/api/game/state" && method === "POST") {
+      if (!userId) return new Response('{"error":"missing user"}', { status: 401, headers: { "Content-Type": "application/json" } });
+      const body = await request.json();
+      await env.GAME_STATE.put(`state:${userId}`, JSON.stringify(body));
+      // track players (best-effort)
+      try {
+        const raw = await env.GAME_STATE.get("admin:players");
+        let players = raw ? JSON.parse(raw) : [];
+        const userKey = `${userId}|${body.playerName || ""}`;
+        players = players.filter((p) => !p.startsWith(`${userId}|`));
+        players.unshift(userKey);
+        if (players.length > 200) players = players.slice(0, 200);
+        await env.GAME_STATE.put("admin:players", JSON.stringify(players));
+      } catch (_) { /* non-critical */ }
+      return new Response("ok");
+    }
+
+    // Admin
     if (path === "/api/admin/players" && method === "GET") {
       if (!userId || !ADMIN_IDS.includes(userId)) return new Response("forbidden", { status: 403 });
-      return apiAdminPlayers(env);
+      try {
+        const raw = await env.GAME_STATE.get("admin:players");
+        return new Response(JSON.stringify({ players: raw ? JSON.parse(raw) : [] }), { headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e), players: [] }), { status: 500, headers: { "Content-Type": "application/json" } });
+      }
     }
     if (path.startsWith("/api/admin/player/") && method === "GET") {
       if (!userId || !ADMIN_IDS.includes(userId)) return new Response("forbidden", { status: 403 });
       const targetId = path.split("/").pop();
-      return apiAdminPlayerState(targetId, env);
+      try {
+        const raw = await env.GAME_STATE.get(`state:${targetId}`);
+        return new Response(raw || "{}", { headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
+      }
     }
 
     // SPA fallback
