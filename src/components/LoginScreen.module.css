@@ -1,0 +1,55 @@
+.container {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  color: var(--accent-pink);
+  margin: 0 0 0.3rem;
+}
+
+.subtitle {
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+/* ── IAM 登录按钮 ──────────────────────── */
+.iamBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 46px;
+  padding: 0 2rem;
+  border: 2px solid var(--accent-pink);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--accent-pink);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.iamBtn:hover {
+  background: var(--accent-pink);
+  color: white;
+}
+
+.iamIcon {
+  font-size: 1.2rem;
+}

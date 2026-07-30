@@ -1,0 +1,114 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+/* ── Token display ────────────────────── */
+.tokenRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.tokenIcon {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-pink);
+}
+
+.tokenAmount {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-main);
+  min-width: 2ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.tokenLabel {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* ── Buttons ──────────────────────────── */
+.buttons {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1.25rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btnFree {
+  background-color: var(--cta-bg);
+  color: var(--cta-color);
+}
+
+.btnFree:hover:not(:disabled) {
+  background-color: var(--cta-hover);
+}
+
+.btnPremium {
+  background: linear-gradient(135deg, var(--accent-pink), #ff4d7a);
+  color: white;
+  box-shadow: 0 2px 8px rgba(230, 118, 144, 0.4);
+}
+
+.btnPremium:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(230, 118, 144, 0.6);
+  filter: brightness(1.08);
+}
+
+.btnPremium:disabled {
+  background: var(--divider-color);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+/* ── TSC hint ─────────────────────────── */
+.tokenHint {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-top: -0.35rem;
+}
+
+.freeRemaining {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+@media (max-width: 480px) {
+  .btn {
+    height: 44px;
+    padding: 0 1rem;
+    font-size: 0.85rem;
+  }
+  .buttons {
+    gap: 0.5rem;
+  }
+}

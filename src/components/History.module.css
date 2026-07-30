@@ -1,0 +1,72 @@
+.section {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 0.5rem 0;
+}
+
+.heading {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0 0 0.6rem 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  font-size: 0.82rem;
+}
+
+.modeBadge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.free {
+  background: var(--soft-pink);
+  color: var(--accent-pink);
+}
+
+.premium {
+  background: linear-gradient(135deg, var(--accent-pink), #ff4d7a);
+  color: white;
+}
+
+.prizeName {
+  flex: 1;
+  color: var(--text-main);
+}
+
+.time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  padding: 0.5rem 0;
+}
