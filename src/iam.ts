@@ -7,7 +7,7 @@
  *   - 登录后从 UserInfo 获取 preferred_username 作为玩家名
  *
  * 环境变量：
- *   VITE_IAM_ISSUER         — IAM 地址，如 http://localhost:8080
+ *   VITE_IAM_ISSUER         — IAM 地址，如 https://iam.transcircle.org
  *   VITE_IAM_CLIENT_ID      — OIDC 客户端 ID
  *   VITE_IAM_CLIENT_SECRET  — 可选，机密客户端的密钥
  *   VITE_IAM_REDIRECT_URI   — 回调地址，默认 window.location.origin
