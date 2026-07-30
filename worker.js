@@ -74,6 +74,21 @@ export default {
         return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
       }
     }
+    if (path.startsWith("/api/admin/player/") && method === "PATCH") {
+      if (!userId || !ADMIN_IDS.includes(userId)) return new Response("forbidden", { status: 403 });
+      const targetId = path.split("/").pop();
+      try {
+        const raw = await env.GAME_STATE.get(`state:${targetId}`);
+        if (!raw) return new Response("{}", { status: 404 });
+        const state = JSON.parse(raw);
+        const patch = await request.json();
+        if (typeof patch.tokens === "number") state.tokens = Math.max(0, patch.tokens);
+        await env.GAME_STATE.put(`state:${targetId}`, JSON.stringify(state));
+        return new Response(JSON.stringify(state), { headers: { "Content-Type": "application/json" } });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
+      }
+    }
 
     // SPA fallback
     return env.ASSETS.fetch(request);
