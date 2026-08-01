@@ -6,14 +6,43 @@ interface PlayerInfo {
   userId: string; name: string;
 }
 
+/** 管理密码的 SHA256（yssbxpZLJ1024） */
+const ADMIN_PW_HASH = "c64c6b432a461ce6636c8be1d5aa0dad24bf3cc09887b28d7b4905fac58a67fc";
+const AUTH_KEY = "admin_auth_ok";
+
+async function sha256(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
+  const [authed, setAuthed] = useState<boolean>(() => sessionStorage.getItem(AUTH_KEY) === "1");
+  const [pw, setPw] = useState("");
+  const [pwError, setPwError] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
   const [selected, setSelected] = useState<PlayerInfo | null>(null);
   const [state, setState] = useState<any>(null);
   const [editTokens, setEditTokens] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadPlayers(); }, []);
+  useEffect(() => { if (authed) loadPlayers(); }, [authed]);
+
+  const tryUnlock = async () => {
+    if (!pw || checking) return;
+    setChecking(true);
+    setPwError(false);
+    const h = await sha256(pw);
+    if (h === ADMIN_PW_HASH) {
+      sessionStorage.setItem(AUTH_KEY, "1");
+      setAuthed(true);
+      setPw("");
+    } else {
+      setPwError(true);
+      setPw("");
+    }
+    setChecking(false);
+  };
 
   const loadPlayers = async () => {
     try {
@@ -61,6 +90,43 @@ const AdminPage: React.FC<AdminPageProps> = ({ onBack }) => {
 
   const s = state;
   const diff = s && !s._error ? (parseInt(editTokens) || 0) - (s.tokens ?? 0) : 0;
+
+  // ── 未通过密码验证 → 密码屏 ──
+  if (!authed) {
+    return (
+      <div style={{ maxWidth: 360, margin: "0 auto", padding: "60px 16px", textAlign: "center" }}>
+        <button onClick={onBack} style={{ background: "none", border: "1px solid var(--border-color, #ddd)", borderRadius: 6, padding: "4px 12px", cursor: "pointer", color: "var(--text-color)", fontSize: "0.8rem", marginBottom: 24 }}>← 返回</button>
+        <div style={{ fontSize: "2rem", marginBottom: 8 }}>🔒</div>
+        <h2 style={{ margin: "0 0 4px", fontSize: "1.1rem", fontWeight: 600 }}>管理后台</h2>
+        <p style={{ fontSize: "0.8rem", color: "#888", margin: "0 0 20px" }}>请输入管理密码</p>
+        <input
+          type="password"
+          value={pw}
+          onChange={(e) => { setPw(e.target.value); setPwError(false); }}
+          onKeyDown={(e) => e.key === "Enter" && tryUnlock()}
+          placeholder="密码"
+          autoFocus
+          style={{
+            width: "100%", padding: "10px 12px", border: `1px solid ${pwError ? "#ef4444" : "var(--border-color, #ddd)"}`,
+            borderRadius: 8, fontSize: "0.95rem", textAlign: "center", boxSizing: "border-box",
+            background: "var(--bg-input, #fff)", color: "var(--text-color)",
+          }}
+        />
+        {pwError && <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "8px 0 0" }}>密码错误，请重试</p>}
+        <button
+          onClick={tryUnlock}
+          disabled={checking || !pw}
+          style={{
+            marginTop: 14, width: "100%", padding: "10px 0", border: "none", borderRadius: 8,
+            background: (checking || !pw) ? "#aaa" : "var(--accent, #6366f1)", color: "#fff",
+            cursor: (checking || !pw) ? "not-allowed" : "pointer", fontSize: "0.9rem",
+          }}
+        >
+          {checking ? "验证中..." : "进入"}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 16px" }}>
