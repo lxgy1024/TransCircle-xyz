@@ -31,6 +31,8 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const stateRef = useRef(playerState);
   stateRef.current = playerState;
+  // 转盘停止后才显示的结果
+  const pendingResultRef = useRef<{ slotId: number; mode: SpinMode } | null>(null);
 
   // ── 挂载时从服务端加载存档 ──
   useEffect(() => {
@@ -89,8 +91,8 @@ const App: React.FC = () => {
         const { slotId, updatedState } = performSpin(st, mode);
         setPlayerState(updatedState);
         stateRef.current = updatedState;
-        setResultSlot(slotId);
-        setResultMode(mode);
+        // 暂存结果，等转盘转完再显示
+        pendingResultRef.current = { slotId, mode };
         setIsSpinning(true);
         setSpinTrigger({ slotId });
         // 异步保存（不阻塞 UI）
@@ -106,6 +108,12 @@ const App: React.FC = () => {
   const handleSpinEnd = useCallback(() => {
     setIsSpinning(false);
     setSpinTrigger(null);
+    // 转盘停止后才显示结果
+    if (pendingResultRef.current) {
+      setResultSlot(pendingResultRef.current.slotId);
+      setResultMode(pendingResultRef.current.mode);
+      pendingResultRef.current = null;
+    }
   }, []);
 
   const closeResult = useCallback(() => {
