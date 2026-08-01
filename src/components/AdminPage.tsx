@@ -168,7 +168,9 @@ function uid(): string {
     const tok = JSON.parse(raw);
     const payload = tok.id_token?.split(".")[1];
     if (!payload) return "";
-    return JSON.parse(atob(payload)).sub || "";
+    // JWT payload 是 base64url，转回标准 base64 再解码
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b64)).sub || "";
   } catch { return ""; }
 }
 

@@ -42,6 +42,10 @@ const App: React.FC = () => {
       }
       setPlayerState(state);
       stateRef.current = state;
+      // 有登录用户但 KV 里还没有存档 → 立即保存，确保出现在管理后台
+      if (iamUser && state.playerName) {
+        saveState(state);
+      }
       setLoading(false);
     })();
   }, []);

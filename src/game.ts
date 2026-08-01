@@ -25,10 +25,11 @@ export function getUserId(): string {
     const raw = localStorage.getItem("iam_tokens");
     if (!raw) return "";
     const tok = JSON.parse(raw);
-    // 从 id_token 解析 sub（简单 base64 decode payload）
     const payload = tok.id_token?.split(".")[1];
     if (!payload) return "";
-    return JSON.parse(atob(payload)).sub || "";
+    // JWT payload 是 base64url（- _ 无 padding），atob 只认标准 base64（+ /）
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b64)).sub || "";
   } catch {
     return "";
   }
