@@ -5,13 +5,6 @@ interface InventoryProps {
   inventory: Record<string, number>;
 }
 
-const COLLECTIBLE_ICONS: Record<string, string> = {
-  rainbow_badge: "🌈",
-  jia_yu: "🐢",
-  gan_yue: "🌙",
-  wings_sutra: "📜",
-};
-
 const DISPLAY_ORDER = ["rainbow_badge", "jia_yu", "gan_yue", "wings_sutra"];
 
 const Inventory: React.FC<InventoryProps> = ({ inventory }) => {
@@ -26,7 +19,6 @@ const Inventory: React.FC<InventoryProps> = ({ inventory }) => {
         <div className={styles.grid}>
           {items.map((id) => (
             <div key={id} className={styles.item}>
-              <span className={styles.icon}>{COLLECTIBLE_ICONS[id]}</span>
               <span className={styles.name}>{COLLECTIBLE_NAMES[id]}</span>
               <span className={styles.count}>×{inventory[id]}</span>
             </div>

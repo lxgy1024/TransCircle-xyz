@@ -10,23 +10,16 @@ interface ResultModalProps {
   onRetryFree?: () => void;
 }
 
-function getIcon(reward: Reward): string {
+function getIcon(reward: Reward): string | null {
   switch (reward.type) {
     case "tokens":
       return "◆";
-    case "collectible": {
-      const map: Record<string, string> = {
-        rainbow_badge: "🌈",
-        jia_yu: "🐢",
-        gan_yue: "🌙",
-        wings_sutra: "📜",
-      };
-      return map[reward.itemId ?? ""] ?? "🎁";
-    }
+    case "collectible":
+      return "◆";
     case "freeSpin":
       return "🔄";
     case "nothing":
-      return "😅";
+      return null;
   }
 }
 
@@ -85,7 +78,7 @@ const ResultModal: React.FC<ResultModalProps> = ({
           {mode === "free" ? "免费抽奖" : "高级抽奖"}
         </p>
 
-        <span className={styles.icon}>{icon}</span>
+        {icon && <span className={styles.icon}>{icon}</span>}
 
         <p className={`${styles.prizeName} ${rarity === "rare" ? styles.rareText : ""}`}>
           {name}

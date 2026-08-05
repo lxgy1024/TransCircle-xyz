@@ -34,14 +34,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           disabled={!canFree}
           onClick={() => onSpin("free")}
         >
-          🎡 免费转转盘
+          免费转转盘
         </button>
         <button
           className={`${styles.btn} ${styles.btnPremium}`}
           disabled={!canPremium}
           onClick={() => onSpin("premium")}
         >
-          💎 高级转转盘 (100 TSC)
+          高级转转盘 (100 TSC)
         </button>
       </div>
 

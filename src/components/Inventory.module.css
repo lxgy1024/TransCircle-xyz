@@ -30,11 +30,6 @@
   box-shadow: var(--shadow-card);
 }
 
-.icon {
-  font-size: 1.3rem;
-  flex-shrink: 0;
-}
-
 .name {
   font-size: 0.85rem;
   color: var(--text-main);

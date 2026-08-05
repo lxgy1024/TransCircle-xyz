@@ -15,7 +15,6 @@ const LoginScreen: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.logo}>🎡</div>
       <h1 className={styles.title}>TransCircle 转盘</h1>
       <p className={styles.subtitle}>登录以开始游戏</p>
 

@@ -111,24 +111,7 @@
   color: var(--text-muted);
 }
 
-/* ── Rare shimmer ─────────────────────── */
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
+/* ── Rare prize name ──────────────────── */
 .rareText {
-  background: linear-gradient(
-    90deg,
-    #ffd700 0%,
-    #ff6b9d 25%,
-    #c9a0dc 50%,
-    #ff6b9d 75%,
-    #ffd700 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 2s linear infinite;
+  color: #ffd700;
 }

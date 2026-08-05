@@ -39,10 +39,10 @@ export const DAILY_FREE_LIMIT = 3;
 
 /** ── 收藏品展示名 ───────────────────────────────── */
 export const COLLECTIBLE_NAMES: Record<string, string> = {
-  rainbow_badge: "🌈 彩虹徽章",
-  jia_yu: "🐢 甲鱼",
-  gan_yue: "🌙 赶月",
-  wings_sutra: "📜 翅膀经",
+  rainbow_badge: "彩虹徽章",
+  jia_yu: "甲鱼",
+  gan_yue: "赶月",
+  wings_sutra: "翅膀经",
 };
 
 /** ── 转盘显示颜色 (10 种糖果色) ────────────────── */

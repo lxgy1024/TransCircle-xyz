@@ -186,7 +186,7 @@ const App: React.FC = () => {
             )}
           </h1>
           <p className={styles.playerName}>
-            🎮 {playerState.playerName}
+            {playerState.playerName}
             {isIamConfigured() && (
               <button className={styles.logoutBtn} onClick={handleLogout} title="退出登录">
                 ✕
